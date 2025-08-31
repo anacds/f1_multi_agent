@@ -1,0 +1,8 @@
+pydantic
+langgraph
+langgraph-cli[inmem]
+langchain-core
+langchain_openai
+fastmcp
+a2a-sdk
+uvicorn

@@ -1,0 +1,8 @@
+{
+    "dependencies": ["./tyre_agent"],
+    "graphs": {
+      "agent": "./tyre_agent/graph.py:graph"
+    },
+    "env": ".env"
+  }
+  
