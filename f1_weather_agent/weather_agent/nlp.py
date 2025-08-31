@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from weather_agent.models import AgentRequest  # seu schema pydantic
+from weather_agent.models import AgentRequest  
 
 class NLParser:
     def __init__(self, model_name: str = "gpt-4o-mini", temperature: float = 0.2):
