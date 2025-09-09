@@ -4,8 +4,8 @@ from fastmcp.exceptions import ToolError
 from .models import MinutelyForecastInput, MinutelyForecastOutput
 from .logic import get_minutely_forecast
 
-HOST = os.getenv("MCP_HOST")
-PORT = int(os.getenv("MCP_PORT"))
+HOST = os.getenv("MCP_HOST", "0.0.0.0")
+PORT = int(os.getenv("MCP_PORT", "8989"))
 
 mcp = FastMCP(
     name="weather_mcp",
@@ -44,6 +44,11 @@ async def get_minutely_forecast_tool(context: Context, payload: MinutelyForecast
     except Exception as e:
         context.error("weather_mcp.accu.forecast.unexpected")
         raise ToolError(f"Falha interna no forecast (AccuWeather): {type(e).__name__}: {e}")
+
+@mcp.tool
+def health_check() -> dict:
+    """Health check endpoint for Docker"""
+    return {"status": "healthy", "service": "weather-mcp"}
 
 if __name__ == "__main__":
     mcp.run(transport="http", host=HOST, port=PORT, path="/mcp")

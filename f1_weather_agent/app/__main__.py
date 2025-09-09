@@ -10,12 +10,10 @@ from a2a.types import AgentCard, AgentCapabilities, AgentSkill
 from app.agent_executor import WeatherExecutor
 from weather_agent.models import AgentRequest
 
-host = os.getenv("A2A_HOST")
-port = int(os.getenv("A2A_PORT"))
+host = os.getenv("A2A_HOST", "0.0.0.0")
+port = int(os.getenv("A2A_PORT", "8892"))
 
 def create_app():
-    host = os.getenv("A2A_HOST")
-    port = int(os.getenv("A2A_PORT"))
 
     card = AgentCard(
         protocolVersion="0.3.0",

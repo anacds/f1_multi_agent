@@ -10,8 +10,8 @@ from a2a.types import AgentCard, AgentCapabilities, AgentSkill
 from app.agent_executor import TyreAgentExecutor
 from tyre_agent.models import PredictPaceInput, EstimateDropInput
 
-host = os.getenv("TYRE_AGENT_HOST")
-port = int(os.getenv("TYRE_AGENT_PORT"))
+host = os.getenv("TYRE_AGENT_HOST", "0.0.0.0")
+port = int(os.getenv("TYRE_AGENT_PORT", "8891"))
 
 def create_app():
 

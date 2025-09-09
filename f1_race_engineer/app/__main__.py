@@ -8,8 +8,8 @@ from a2a.types import AgentCard, AgentCapabilities, AgentSkill
 
 from app.agent_executor import SupervisorExecutor
 
-host = os.getenv("SUPERVISOR_HOST")
-port = int(os.getenv("SUPERVISOR_PORT"))
+host = os.getenv("SUPERVISOR_HOST", "0.0.0.0")
+port = int(os.getenv("SUPERVISOR_PORT", "8000"))
 
 def create_app():
     card = AgentCard(

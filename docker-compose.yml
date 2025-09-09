@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  tyre-mcp:
+    build:
+      context: ./f1_tyre_mcp
+      dockerfile: Dockerfile
+    container_name: f1-tyre-mcp
+    ports:
+      - "8787:8787"
+    env_file:
+      - ./f1_tyre_mcp/.env
+    environment:
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8787
+    networks:
+      - f1-network
+    restart: unless-stopped
+
+  weather-mcp:
+    build:
+      context: ./f1_weather_mcp
+      dockerfile: Dockerfile
+    container_name: f1-weather-mcp
+    ports:
+      - "8989:8989"
+    env_file:
+      - ./f1_weather_mcp/.env
+    environment:
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8989
+    networks:
+      - f1-network
+    restart: unless-stopped
+
+  tyre-agent:
+    build:
+      context: ./f1_tyre_agent
+      dockerfile: Dockerfile
+    container_name: f1-tyre-agent
+    ports:
+      - "8891:8891"
+    env_file:
+      - ./f1_tyre_agent/.env
+    environment:
+      - TYRE_AGENT_HOST=0.0.0.0
+      - TYRE_AGENT_PORT=8891
+      - TYRE_MCP_URL=http://tyre-mcp:8787/mcp
+    depends_on:
+      tyre-mcp:
+        condition: service_started
+    networks:
+      - f1-network
+    restart: unless-stopped
+
+  weather-agent:
+    build:
+      context: ./f1_weather_agent
+      dockerfile: Dockerfile
+    container_name: f1-weather-agent
+    ports:
+      - "8892:8892"
+    env_file:
+      - ./f1_weather_agent/.env
+    environment:
+      - A2A_HOST=0.0.0.0
+      - A2A_PORT=8892
+      - WEATHER_MCP_URL=http://weather-mcp:8989/mcp
+    depends_on:
+      weather-mcp:
+        condition: service_started
+    networks:
+      - f1-network
+    restart: unless-stopped
+
+  supervisor:
+    build:
+      context: ./f1_race_engineer
+      dockerfile: Dockerfile
+    container_name: f1-supervisor
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./f1_race_engineer/.env
+    environment:
+      - SUPERVISOR_HOST=0.0.0.0
+      - SUPERVISOR_PORT=8000
+      - TYRE_AGENT_URL=http://tyre-agent:8891
+      - WEATHER_AGENT_URL=http://weather-agent:8892
+    depends_on:
+      tyre-agent:
+        condition: service_started
+      weather-agent:
+        condition: service_started
+    networks:
+      - f1-network
+    restart: unless-stopped
+
+networks:
+  f1-network:
+    driver: bridge
+
+volumes:
+  f1-data:
+    driver: local

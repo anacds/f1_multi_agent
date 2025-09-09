@@ -14,6 +14,8 @@ TYRE_AGENT_URL = os.getenv("TYRE_AGENT_URL")
 WEATHER_AGENT_URL = os.getenv("WEATHER_AGENT_URL")
 AGENTS = {"tyre_agent": TYRE_AGENT_URL, "weather_agent": WEATHER_AGENT_URL}
 
+print(f"--- SUPERVISOR: URLs carregadas - TYRE: {TYRE_AGENT_URL}, WEATHER: {WEATHER_AGENT_URL} ---")
+
 class GetTelemetryArgs(BaseModel):
     driver_id: str = Field(description="O ID do piloto para buscar a telemetria.")
 
@@ -75,6 +77,11 @@ RECOMENDAÇÃO FINAL PARA A EQUIPE:"""
 synthesizer_chain = synthesizer_prompt_template | synthesizer_llm
 
 async def fetch_agent_cards(state: SupervisorState) -> dict:
+    # Verifica se já tem agent cards no estado
+    if state.get("agent_cards") and state.get("skills_index"):
+        print("--- SUPERVISOR: Agent cards já estão no estado ---")
+        return {}
+    
     print("--- SUPERVISOR: Buscando Agent Cards... ---")
     agent_cards, skills_index = {}, {}
 
@@ -83,53 +90,66 @@ async def fetch_agent_cards(state: SupervisorState) -> dict:
             print(f"--- AVISO: URL ausente para {agent_name} ---")
             continue
 
-        client = A2AClient(agent_url=base_url)
-        card = await client.get_agent_card()
-        await client.close()
+        try:
+            client = A2AClient(agent_url=base_url)
+            card = await client.get_agent_card()
+            await client.close()
 
-        if not card:
-            print(f"--- AVISO: Não consegui obter Agent Card de {agent_name} ---")
+            if not card:
+                print(f"--- AVISO: Não consegui obter Agent Card de {agent_name} ---")
+                continue
+
+            agent_cards[agent_name] = card
+
+            skill_map = {}
+            for skill in card.get("skills", []) or []:
+                skill_id = skill.get("id")
+                props = []
+                for ex in skill.get("examples", []) or []:
+                    try:
+                        data = json.loads(ex)
+                        if isinstance(data, dict):
+                            if isinstance(data.get("properties"), dict):
+                                props = list(data["properties"].keys()); break
+                            payload = data.get("payload")
+                            if isinstance(payload, dict):
+                                props = list(payload.keys()); break
+                    except Exception:
+                        pass
+                if skill_id:
+                    skill_map[skill_id] = {
+                        "name": skill.get("name"),
+                        "description": skill.get("description"),
+                        "properties": props,
+                    }
+            skills_index[agent_name] = skill_map
+        except Exception as e:
+            print(f"--- ERRO ao buscar Agent Card de {agent_name}: {e} ---")
             continue
-
-        agent_cards[agent_name] = card
-
-        skill_map = {}
-        for skill in card.get("skills", []) or []:
-            skill_id = skill.get("id")
-            props = []
-            for ex in skill.get("examples", []) or []:
-                try:
-                    data = json.loads(ex)
-                    if isinstance(data, dict):
-                        if isinstance(data.get("properties"), dict):
-                            props = list(data["properties"].keys()); break
-                        payload = data.get("payload")
-                        if isinstance(payload, dict):
-                            props = list(payload.keys()); break
-                except Exception:
-                    pass
-            if skill_id:
-                skill_map[skill_id] = {
-                    "name": skill.get("name"),
-                    "description": skill.get("description"),
-                    "properties": props,
-                }
-        skills_index[agent_name] = skill_map
-
+    
     print(f"--- SUPERVISOR: Agent Cards coletados: {list(agent_cards.keys())} ---")
     return {"agent_cards": agent_cards, "skills_index": skills_index}
 
 
 async def plan_step(state: SupervisorState) -> dict:
-    if state.get("final_response"):
-        return {}
+    try:
+        print("--- SUPERVISOR: Iniciando plan_step ---")
+        
+        if state.get("final_response"):
+            print("--- SUPERVISOR: Já tem resposta final, retornando vazio ---")
+            return {}
 
-    state.setdefault("agent_cards", {})
-    state.setdefault("skills_index", {})
-    state.setdefault("telemetry_data", None)
-    state.setdefault("weather_forecast", None)
-    state.setdefault("tyre_analysis", None)
-    state.setdefault("action_history", [])
+        state.setdefault("agent_cards", {})
+        state.setdefault("skills_index", {})
+        state.setdefault("telemetry_data", None)
+        state.setdefault("weather_forecast", None)
+        state.setdefault("tyre_analysis", None)
+        state.setdefault("action_history", [])
+        
+        print(f"--- SUPERVISOR: Estado atual - agent_cards: {bool(state.get('agent_cards'))}, skills_index: {bool(state.get('skills_index'))} ---")
+    except Exception as e:
+        print(f"--- ERRO em plan_step: {e} ---")
+        return {"error": str(e)}
 
     needs_telemetry = state.get("telemetry_data") is None
     needs_tyre = state.get("tyre_analysis") is None

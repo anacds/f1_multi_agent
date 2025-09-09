@@ -27,6 +27,11 @@ def estimate_laps_to_drop_tool(
     """Estima quantas voltas restam antes da queda drástica de performance do pneu."""
     return estimate_laps_to_drop(payload)
 
+@mcp.tool
+def health_check() -> dict:
+    """Health check endpoint for Docker"""
+    return {"status": "healthy", "service": "tyre-mcp"}
+
 if __name__ == "__main__":
     mcp.run(
         transport="http", 

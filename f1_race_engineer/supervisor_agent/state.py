@@ -12,6 +12,5 @@ class SupervisorState(TypedDict, total=False):
     tyre_analysis: Dict[str, Any]
     action_history: List[str]
     final_response: str
-    tool_to_call: str
     agent_cards: Dict[str, Any]
     skills_index: Dict[str, Dict[str, Any]]
